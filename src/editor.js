@@ -1,0 +1,203 @@
+import { Editor } from '@tiptap/core'
+import StarterKit from '@tiptap/starter-kit'
+import DOMPurify from 'dompurify'
+import './style.css'
+
+const toggle = (label, name, command, attrs) => ({
+  label,
+  run: editor => editor.chain().focus()[command](attrs).run(),
+  active: editor => editor.isActive(name, attrs),
+  enabled: editor => typeof editor.commands[command] === 'function' && editor.can().chain()[command](attrs).run(),
+})
+
+const controls = {
+  paragraph: toggle('Text', 'paragraph', 'setParagraph'),
+  heading: toggle('Heading', 'heading', 'toggleHeading', { level: 2 }),
+  bold: toggle('Bold', 'bold', 'toggleBold'),
+  italic: toggle('Italic', 'italic', 'toggleItalic'),
+  underline: toggle('Underline', 'underline', 'toggleUnderline'),
+  strike: toggle('Strike', 'strike', 'toggleStrike'),
+  bulletList: toggle('Bullets', 'bulletList', 'toggleBulletList'),
+  orderedList: toggle('Numbered', 'orderedList', 'toggleOrderedList'),
+  quote: toggle('Quote', 'blockquote', 'toggleBlockquote'),
+  code: toggle('Code block', 'codeBlock', 'toggleCodeBlock'),
+  link: {
+    label: 'Insert or edit link',
+    active: editor => editor.isActive('link'),
+    enabled: editor => typeof editor.commands.setLink === 'function' &&
+      (editor.isActive('link') || editor.can().setLink({ href: 'https://example.com' }) || editor.state.selection.empty && editor.isActive('paragraph')),
+    run(editor) {
+      const current = editor.getAttributes('link').href ?? ''
+      const value = window.prompt('Link URL (leave empty to remove an existing link)', current)
+      if (value === null) return
+      const href = value.trim()
+      const chain = editor.chain().focus()
+      if (!href) {
+        if (current) chain.extendMarkRange('link').unsetLink().run()
+        return
+      }
+      if (!editor.can().setLink({ href })) {
+        window.alert('Enter a supported link URL.')
+        return
+      }
+      if (editor.state.selection.empty && !current) {
+        const label = window.prompt('Link text', href)
+        if (label?.trim()) chain.insertContent({
+          type: 'text', text: label.trim(), marks: [{ type: 'link', attrs: { href } }],
+        }).run()
+        return
+      }
+      chain.extendMarkRange('link').setLink({ href }).run()
+    },
+  },
+  undo: toggle('Undo', '', 'undo'),
+  redo: toggle('Redo', '', 'redo'),
+}
+delete controls.undo.active
+delete controls.redo.active
+
+const defaultIcons = {
+  paragraph: '¶', heading: 'H₂', bold: 'B', italic: 'I', underline: 'U',
+  strike: 'S', bulletList: '☷', orderedList: '≡', quote: '❝',
+  code: '‹/›', link: '🔗', undo: '↶', redo: '↷',
+}
+
+export const presets = {
+  basic: ['bold', 'italic', 'bulletList', '|', 'undo', 'redo'],
+  article: ['paragraph', 'heading', '|', 'bold', 'italic', 'underline', 'strike', '|', 'bulletList', 'orderedList', 'quote', 'code', '|', 'undo', 'redo'],
+}
+
+const clean = html => DOMPurify.sanitize(html, { USE_PROFILES: { html: true } })
+
+export function createEditwell(element, {
+  content = '', toolbar = presets.article, plugins = [], features = {},
+  theme = 'light', tokens = {}, labels = {}, label = 'Document',
+  toolbarStyle = 'icons', icons = {}, editable = true, onChange = () => {},
+} = {}) {
+  const root = document.createElement('div')
+  root.className = 'ew'
+  const bar = document.createElement('div')
+  bar.className = 'ew-bar'
+  bar.setAttribute('role', 'group')
+  bar.setAttribute('aria-label', label + ' formatting')
+  const surface = document.createElement('div')
+  surface.className = 'ew-surface'
+  root.append(bar, surface)
+
+  const source = document.createElement('textarea')
+  source.className = 'ew-source'
+  source.setAttribute('aria-label', label + ' HTML source')
+  source.spellcheck = false
+  source.hidden = true
+  root.append(source)
+
+  const commands = new Map(Object.entries(controls))
+  commands.set('source', {
+    label: 'HTML source',
+    icon: '</>',
+    active: () => !source.hidden,
+    run: () => setSourceMode(source.hidden),
+  })
+  const names = new Set()
+  for (const plugin of plugins) {
+    if (!plugin.name || names.has(plugin.name)) throw new Error('Plugins need unique names')
+    names.add(plugin.name)
+    for (const [id, control] of Object.entries(plugin.controls ?? {})) {
+      if (commands.has(id)) throw new Error('Duplicate toolbar control: ' + id)
+      commands.set(id, control)
+    }
+  }
+
+  const editor = new Editor({
+    element: surface,
+    extensions: [StarterKit.configure({ link: { openOnClick: false }, ...features }), ...plugins.flatMap(plugin => plugin.extensions ?? [])],
+    content: typeof content === 'string' ? clean(content) : content,
+    editable,
+    editorProps: {
+      attributes: { role: 'textbox', 'aria-multiline': 'true', 'aria-label': label },
+      transformPastedHTML: clean,
+    },
+    onUpdate: ({ editor }) => onChange({ html: editor.getHTML(), json: editor.getJSON() }),
+  })
+  element.append(root)
+
+  const buttons = []
+  for (const id of toolbar) {
+    if (id === '|') {
+      const divider = document.createElement('span')
+      divider.className = 'ew-divider'
+      divider.setAttribute('aria-hidden', 'true')
+      bar.append(divider)
+      continue
+    }
+    const control = commands.get(id)
+    if (!control) continue
+    const button = document.createElement('button')
+    button.type = 'button'
+    const text = labels[id] ?? control.label
+    const icon = icons[id] ?? control.icon ?? defaultIcons[id]
+    if (toolbarStyle === 'icons' && icon) {
+      const glyph = document.createElement('span')
+      glyph.className = 'ew-glyph'
+      glyph.dataset.control = id
+      glyph.textContent = icon
+      glyph.setAttribute('aria-hidden', 'true')
+      button.append(glyph)
+      button.setAttribute('aria-label', text)
+      button.title = text
+    } else {
+      button.textContent = text
+    }
+    button.addEventListener('mousedown', event => event.preventDefault())
+    button.addEventListener('click', () => control.run(editor))
+    buttons.push({ button, control, id })
+    bar.append(button)
+  }
+  bar.hidden = !buttons.length
+  const refresh = () => {
+    for (const { button, control, id } of buttons) {
+      button.disabled = id === 'source' ? source.hidden && !editor.isEditable : !source.hidden || !editor.isEditable || !(control.enabled?.(editor) ?? true)
+      if (control.active) button.setAttribute('aria-pressed', String(control.active(editor)))
+    }
+  }
+  function setSourceMode(enabled, focus = true) {
+    if (enabled === !source.hidden || (enabled && !editor.isEditable)) return
+    if (!enabled && source.value !== editor.getHTML() && editor.isEditable) {
+      editor.commands.setContent(clean(source.value))
+    }
+    source.hidden = !enabled
+    surface.hidden = enabled
+    if (enabled) source.value = editor.getHTML()
+    refresh()
+    if (focus) {
+      if (enabled) source.focus()
+      else if (editor.isEditable) editor.commands.focus()
+    }
+  }
+
+  editor.on('transaction', refresh)
+  const setTheme = (name, overrides = tokens) => {
+    root.dataset.theme = name
+    for (const property of Array.from(root.style)) {
+      if (property.startsWith('--ew-')) root.style.removeProperty(property)
+    }
+    for (const [key, value] of Object.entries(overrides)) root.style.setProperty('--ew-' + key, value)
+  }
+  setTheme(theme)
+  refresh()
+  return {
+    getHTML: () => editor.getHTML(),
+    getJSON: () => editor.getJSON(),
+    setContent(value) {
+      const result = editor.commands.setContent(typeof value === 'string' ? clean(value) : value, {
+        emitUpdate: false, errorOnInvalidContent: typeof value !== 'string',
+      })
+      if (!source.hidden) source.value = editor.getHTML()
+      return result
+    },
+    setSourceMode,
+    setEditable: value => { if (!value) setSourceMode(false, false); editor.setEditable(value, false); refresh() },
+    setTheme,
+    destroy: () => { editor.destroy(); root.remove() },
+  }
+}

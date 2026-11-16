@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Editwell</title>
+<style>
+  * { box-sizing:border-box }
+  body { margin:0; background:#f2f5ef; color:#202522; font:16px system-ui,sans-serif }
+  main { width:min(900px,calc(100% - 36px)); margin:48px auto }
+  header { border-bottom:1px solid #cdd8cd; margin-bottom:22px; padding-bottom:24px }
+  h1 { font:clamp(52px,10vw,88px)/1 Georgia,serif; letter-spacing:-.06em; margin:0 0 12px }
+  header p, .status { color:#4d6355; margin:0 }
+  h2 { font-size:1rem; margin:0 }
+  .row { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin:26px 0 10px }
+  .actions { display:flex; flex-wrap:wrap; gap:6px }
+  .actions button { border:1px solid #aabdad; border-radius:7px; background:#fff; color:#244c37; padding:7px 11px; font:inherit; font-size:.82rem; cursor:pointer }
+  .actions button:disabled { opacity:.5; cursor:default }
+  .status { min-height:1.4em; margin-top:8px; font-size:.83rem }
+</style>
+<main>
+  <header><h1>Editwell</h1><p>Standalone rich text editor demo</p></header>
+  <section aria-labelledby="article-title">
+    <div class="row"><h2 id="article-title">Article editor</h2><div class="actions">
+      <button id="theme" type="button" aria-pressed="false">Dark theme</button>
+      <button id="save" type="button">Save draft</button>
+      <button id="restore" type="button" disabled>Restore draft</button>
+    </div></div>
+    <div id="article"></div>
+    <p class="status" id="status" role="status"></p>
+  </section>
+  <section aria-labelledby="note-title">
+    <div class="row"><h2 id="note-title">Quick note</h2></div>
+    <div id="note"></div>
+  </section>
+</main>
+<script type="module" src="/src/demo.js"></script>
+</html>
