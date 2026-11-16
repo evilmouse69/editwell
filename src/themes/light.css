@@ -1,0 +1,11 @@
+.ew {
+  --ew-surface: #fff;
+  --ew-ink: #202522;
+  --ew-muted: #506056;
+  --ew-border: #d7dfd7;
+  --ew-accent: #245e43;
+  --ew-tint: #e9f4ec;
+  --ew-font: system-ui, sans-serif;
+  --ew-radius: 13px;
+  color-scheme: light;
+}

@@ -1,6 +1,8 @@
 import { Editor } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
 import DOMPurify from 'dompurify'
+import './themes/light.css'
+import './themes/dark.css'
 import './style.css'
 
 const toggle = (label, name, command, attrs) => ({

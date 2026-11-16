@@ -1,5 +1,7 @@
 # Editwell
 
+[Try the live demo](https://evilmouse69.github.io/editwell/)
+
 A standalone rich text editor with configurable toolbars, themes and plugins.
 Editwell uses Tiptap and runs in the browser.
 
@@ -20,7 +22,7 @@ article's Save draft and Restore draft buttons use browser storage.
 
 ```js
 import { createEditwell } from './src/editor.js'
-import { callout } from './src/callout.js'
+import { callout } from './src/plugins/callout.js'
 
 const editor = createEditwell(document.querySelector('#editor'), {
   label: 'Article',
@@ -45,6 +47,10 @@ icons by default and retain accessible names and hover labels. Set
 `toolbarStyle: 'text'` for visible text, or use `icons` to override glyphs
 by control ID. Plugins can provide an optional `icon` for each control.
 
+Built-in styles live in [src/themes](src/themes). Add a stylesheet with an
+`.ew[data-theme="your-theme"]` selector and load it alongside the editor to
+use a custom theme via `setTheme("your-theme")`.
+
 Theme tokens map to CSS variables prefixed with `--ew-`. Available tokens
 include surface, ink, border, accent, tint, font, radius, padding and
 min-height. Switch themes with `editor.setTheme('dark')` or pass a map of
@@ -60,13 +66,13 @@ A plugin exports a unique `name`, optional Tiptap `extensions`, and an
 optional `controls` map. A control has a `label` and `run(editor)` callback.
 It can also provide `enabled(editor)` and `active(editor)` predicates.
 Add the control's ID to the toolbar array to show it. See
-[src/callout.js](src/callout.js) for a block that defines parsing,
+[src/plugins/callout.js](src/plugins/callout.js) for a block that defines parsing,
 serialization and a command. Load the same content plugins when reopening
 documents that use their custom nodes. The plugin API is experimental.
 
 ## Optional tools
 
-Import `tables` and `imageUploads` from `src/tools.js`. Add the corresponding
+Import `tables` and `imageUploads` from `src/plugins/tools.js`. Add the corresponding
 plugin and toolbar IDs to each editor where you want them.
 
 - Use `tables` with `table` for a resizable 3 × 3 table with a header row.

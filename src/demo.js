@@ -1,6 +1,6 @@
 import { createEditwell, presets } from './editor.js'
-import { callout } from './callout.js'
-import { imageUploads, tables } from './tools.js'
+import { callout } from './plugins/callout.js'
+import { imageUploads, tables } from './plugins/tools.js'
 
 const images = imageUploads({
   upload(file) {
