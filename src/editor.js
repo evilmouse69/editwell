@@ -1,3 +1,4 @@
+import { editDialog } from './edit-dialog.js'
 import { Editor } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
 import DOMPurify from 'dompurify'
@@ -28,28 +29,26 @@ const controls = {
     active: editor => editor.isActive('link'),
     enabled: editor => typeof editor.commands.setLink === 'function' &&
       (editor.isActive('link') || editor.can().setLink({ href: 'https://example.com' }) || editor.state.selection.empty && editor.isActive('paragraph')),
-    run(editor) {
+    run(editor, root) {
+      const { from, to, empty } = editor.state.selection
       const current = editor.getAttributes('link').href ?? ''
-      const value = window.prompt('Link URL (leave empty to remove an existing link)', current)
-      if (value === null) return
-      const href = value.trim()
-      const chain = editor.chain().focus()
-      if (!href) {
-        if (current) chain.extendMarkRange('link').unsetLink().run()
-        return
-      }
-      if (!editor.can().setLink({ href })) {
-        window.alert('Enter a supported link URL.')
-        return
-      }
-      if (editor.state.selection.empty && !current) {
-        const label = window.prompt('Link text', href)
-        if (label?.trim()) chain.insertContent({
-          type: 'text', text: label.trim(), marks: [{ type: 'link', attrs: { href } }],
-        }).run()
-        return
-      }
-      chain.extendMarkRange('link').setLink({ href }).run()
+      const insert = empty && !current
+      editDialog(editor, root, {
+        title: current ? 'Edit link' : 'Insert link',
+        fields: {
+          href: { label: 'Link URL', value: current },
+          ...(insert ? { text: { label: 'Link text' } } : {}),
+        },
+        submit({ href, text }) {
+          if (!href || !editor.can().setLink({ href })) return 'Enter a supported link URL.'
+          const chain = editor.chain().setTextSelection({ from, to })
+          const applied = insert
+            ? chain.insertContent({ type: 'text', text: text || href, marks: [{ type: 'link', attrs: { href } }] }).run()
+            : chain.extendMarkRange('link').setLink({ href }).run()
+          if (!applied) return 'This selection cannot contain a link.'
+        },
+        remove: current ? () => editor.chain().setTextSelection({ from, to }).extendMarkRange('link').unsetLink().run() : null,
+      })
     },
   },
   undo: toggle('Undo', '', 'undo'),
@@ -123,11 +122,18 @@ export function createEditwell(element, {
   })
   element.append(root)
 
+  const tableMenu = document.createElement('details')
+  tableMenu.className = 'ew-table-menu'
+  const tableSummary = document.createElement('summary')
+  tableSummary.textContent = 'Table actions'
+  const tableActions = document.createElement('div')
+  tableMenu.append(tableSummary, tableActions)
   const buttons = []
   function setToolbar(items) {
     if (!items.includes('source')) setSourceMode(false, false)
     buttons.length = 0
     bar.replaceChildren()
+    tableActions.replaceChildren()
     for (const id of items) {
       if (id === '|') {
         const divider = document.createElement('span')
@@ -155,14 +161,18 @@ export function createEditwell(element, {
         button.textContent = text
       }
       button.addEventListener('mousedown', event => event.preventDefault())
-      button.addEventListener('click', () => control.run(editor))
+      button.addEventListener('click', () => control.run(editor, root))
       buttons.push({ button, control, id })
-      bar.append(button)
+      if (control.context === 'table') tableActions.append(button)
+      else bar.append(button)
     }
-    bar.hidden = !buttons.length
+    if (tableActions.childElementCount) bar.append(tableMenu)
     refresh()
   }
   const refresh = () => {
+    tableMenu.hidden = source.hidden === false || !editor.isEditable || !editor.isActive('table')
+    if (tableMenu.hidden) tableMenu.open = false
+    bar.hidden = !buttons.some(({ control }) => control.context !== 'table' || !tableMenu.hidden)
     for (const { button, control, id } of buttons) {
       button.disabled = id === 'source' ? source.hidden && !editor.isEditable : !source.hidden || !editor.isEditable || !(control.enabled?.(editor) ?? true)
       if (control.active) button.setAttribute('aria-pressed', String(control.active(editor)))

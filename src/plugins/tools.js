@@ -1,4 +1,6 @@
 import { TableKit } from '@tiptap/extension-table'
+import { mergeAttributes } from '@tiptap/core'
+import { editDialog } from '../edit-dialog.js'
 import Image from '@tiptap/extension-image'
 
 const tableCommand = (label, command, options) => ({
@@ -12,13 +14,13 @@ export const tables = {
   extensions: [TableKit.configure({ table: { resizable: true } })],
   controls: {
     table: { ...tableCommand('Insert table', 'insertTable', { rows: 3, cols: 3, withHeaderRow: true }), icon: '▦' },
-    addRow: tableCommand('Add row', 'addRowAfter'),
-    addColumn: tableCommand('Add column', 'addColumnAfter'),
-    deleteRow: tableCommand('Delete row', 'deleteRow'),
-    deleteColumn: tableCommand('Delete column', 'deleteColumn'),
-    deleteTable: tableCommand('Delete table', 'deleteTable'),
-    mergeCells: tableCommand('Merge cells', 'mergeCells'),
-    splitCell: tableCommand('Split cell', 'splitCell'),
+    addRow: { ...tableCommand('Add row', 'addRowAfter'), context: 'table' },
+    addColumn: { ...tableCommand('Add column', 'addColumnAfter'), context: 'table' },
+    deleteRow: { ...tableCommand('Delete row', 'deleteRow'), context: 'table' },
+    deleteColumn: { ...tableCommand('Delete column', 'deleteColumn'), context: 'table' },
+    deleteTable: { ...tableCommand('Delete table', 'deleteTable'), context: 'table' },
+    mergeCells: { ...tableCommand('Merge cells', 'mergeCells'), context: 'table' },
+    splitCell: { ...tableCommand('Split cell', 'splitCell'), context: 'table' },
   },
 }
 
@@ -32,11 +34,56 @@ function imageSource(value) {
   if (['http:', 'https:'].includes(url.protocol)) return value.trim()
 }
 
+const CaptionedImage = Image.extend({
+  addAttributes() {
+    const inherited = this.parent()
+    const readImage = element => element.matches('figure') ? element.querySelector('img') : element
+    const attributes = Object.fromEntries(Object.entries(inherited).map(([name, config]) => [
+      name, { ...config, parseHTML: element => config.parseHTML ? config.parseHTML(readImage(element)) : readImage(element).getAttribute(name) },
+    ]))
+    return {
+      ...attributes,
+      caption: {
+        default: '',
+        rendered: false,
+        parseHTML: element => element.matches('figure') ? element.querySelector('figcaption')?.textContent ?? '' : '',
+      },
+    }
+  },
+  parseHTML() {
+    return [
+      { tag: 'figure[data-editwell-image]', getAttrs: element => element.querySelector('img[src]') ? {} : false },
+      ...this.parent(),
+    ]
+  },
+  renderHTML({ node, HTMLAttributes }) {
+    const image = ['img', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes)]
+    return node.attrs.caption
+      ? ['figure', { 'data-editwell-image': '' }, image, ['figcaption', node.attrs.caption]]
+      : image
+  },
+})
+
 export function imageUploads({ upload, onError = error => window.alert(error.message) }) {
   return {
     name: 'imageUploads',
-    extensions: [Image.configure({ allowBase64: true })],
+    extensions: [CaptionedImage.configure({ allowBase64: true })],
     controls: {
+      imageDetails: {
+        label: 'Image details',
+        enabled: editor => editor.isActive('image'),
+        run(editor, root) {
+          const { alt, caption } = editor.getAttributes('image')
+          editDialog(editor, root, {
+            title: 'Image details',
+            fields: {
+              alt: { label: 'Alt text (leave blank for decorative images)', value: alt ?? '' },
+              caption: { label: 'Caption', value: caption ?? '' },
+            },
+            submit: values => editor.commands.updateAttributes('image', values) ? undefined : 'Select an image to edit.',
+          })
+        },
+      },
       image: {
         label: 'Upload image',
         icon: '▧',

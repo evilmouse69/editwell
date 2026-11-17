@@ -37,3 +37,15 @@
 .ew-surface .resize-cursor { cursor:col-resize; }
 .ew-source { display:block; box-sizing:border-box; width:100%; min-height:var(--ew-min-height, 140px); resize:vertical; padding:var(--ew-padding, 24px); border:0; border-radius:0 0 var(--ew-radius) var(--ew-radius); background:var(--ew-surface); color:var(--ew-ink); font: .9rem/1.55 ui-monospace, monospace; }
 .ew-source[hidden] { display:none; }
+.ew-dialog { color:var(--ew-ink); background:var(--ew-surface); border:1px solid var(--ew-border); border-radius:var(--ew-radius); width:min(400px,calc(100% - 48px)); }
+.ew-dialog::backdrop { background:#14241c80; }
+.ew-dialog h2 { margin:0 0 16px; }
+.ew-dialog label { display:grid; gap:4px; margin-bottom:12px; }
+.ew-dialog input, .ew-dialog button { font:inherit; padding:6px 8px; }
+.ew-dialog form > div { display:flex; flex-wrap:wrap; gap:8px; justify-content:end; }
+.ew-dialog [role=alert]:empty { display:none; }
+.ew-table-menu summary { cursor:pointer; padding:6px 8px; }
+.ew-table-menu > div { display:flex; flex-wrap:wrap; gap:4px; }
+.ew-surface figure[data-editwell-image] { margin:12px 0; }
+.ew-surface figcaption { color:var(--ew-muted); font-size:.875em; margin-top:4px; }
+.ew-surface figure.ProseMirror-selectednode { outline:2px solid var(--ew-accent); }

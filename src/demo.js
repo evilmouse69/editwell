@@ -15,7 +15,7 @@ const images = imageUploads({
   },
 })
 
-const fullToolbar = [...presets.article.slice(0, -3), 'callout', 'link', 'image', 'table', '|', 'addRow', 'addColumn', 'deleteRow', 'deleteColumn', 'mergeCells', 'splitCell', 'deleteTable', '|', 'undo', 'redo', '|', 'source']
+const fullToolbar = [...presets.article.slice(0, -3), 'callout', 'link', 'image', 'imageDetails', 'table', '|', 'addRow', 'addColumn', 'deleteRow', 'deleteColumn', 'mergeCells', 'splitCell', 'deleteTable', '|', 'undo', 'redo', '|', 'source']
 
 const article = createEditwell(document.querySelector('#article'), {
   label: 'Article',

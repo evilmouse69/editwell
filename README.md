@@ -76,10 +76,11 @@ Import `tables` and `imageUploads` from `src/plugins/tools.js`. Add the correspo
 plugin and toolbar IDs to each editor where you want them.
 
 - Use `tables` with `table` for a resizable 3 × 3 table with a header row.
-  Choose which editing controls to show from `addRow`, `addColumn`,
+  The Table actions menu appears inside an editable table. Choose its controls from `addRow`, `addColumn`,
   `deleteRow`, `deleteColumn`, `mergeCells`, `splitCell` and `deleteTable`.
 - Use `imageUploads({ upload, onError })` with `image`. The upload callback
-  receives a File and returns a URL or a promise for a URL. The demo reads
+  receives a File and returns a URL or a promise for a URL. Add `imageDetails`
+  to the toolbar to edit a selected image’s alt text and caption. The demo reads
   images up to 2 MB into the document locally. To store files externally,
   supply your own upload callback. The optional error callback receives errors.
 - Add `link` for link insertion, editing and removal. To disable link
