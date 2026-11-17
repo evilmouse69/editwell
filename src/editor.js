@@ -124,38 +124,44 @@ export function createEditwell(element, {
   element.append(root)
 
   const buttons = []
-  for (const id of toolbar) {
-    if (id === '|') {
-      const divider = document.createElement('span')
-      divider.className = 'ew-divider'
-      divider.setAttribute('aria-hidden', 'true')
-      bar.append(divider)
-      continue
+  function setToolbar(items) {
+    if (!items.includes('source')) setSourceMode(false, false)
+    buttons.length = 0
+    bar.replaceChildren()
+    for (const id of items) {
+      if (id === '|') {
+        const divider = document.createElement('span')
+        divider.className = 'ew-divider'
+        divider.setAttribute('aria-hidden', 'true')
+        bar.append(divider)
+        continue
+      }
+      const control = commands.get(id)
+      if (!control) continue
+      const button = document.createElement('button')
+      button.type = 'button'
+      const text = labels[id] ?? control.label
+      const icon = icons[id] ?? control.icon ?? defaultIcons[id]
+      if (toolbarStyle === 'icons' && icon) {
+        const glyph = document.createElement('span')
+        glyph.className = 'ew-glyph'
+        glyph.dataset.control = id
+        glyph.textContent = icon
+        glyph.setAttribute('aria-hidden', 'true')
+        button.append(glyph)
+        button.setAttribute('aria-label', text)
+        button.title = text
+      } else {
+        button.textContent = text
+      }
+      button.addEventListener('mousedown', event => event.preventDefault())
+      button.addEventListener('click', () => control.run(editor))
+      buttons.push({ button, control, id })
+      bar.append(button)
     }
-    const control = commands.get(id)
-    if (!control) continue
-    const button = document.createElement('button')
-    button.type = 'button'
-    const text = labels[id] ?? control.label
-    const icon = icons[id] ?? control.icon ?? defaultIcons[id]
-    if (toolbarStyle === 'icons' && icon) {
-      const glyph = document.createElement('span')
-      glyph.className = 'ew-glyph'
-      glyph.dataset.control = id
-      glyph.textContent = icon
-      glyph.setAttribute('aria-hidden', 'true')
-      button.append(glyph)
-      button.setAttribute('aria-label', text)
-      button.title = text
-    } else {
-      button.textContent = text
-    }
-    button.addEventListener('mousedown', event => event.preventDefault())
-    button.addEventListener('click', () => control.run(editor))
-    buttons.push({ button, control, id })
-    bar.append(button)
+    bar.hidden = !buttons.length
+    refresh()
   }
-  bar.hidden = !buttons.length
   const refresh = () => {
     for (const { button, control, id } of buttons) {
       button.disabled = id === 'source' ? source.hidden && !editor.isEditable : !source.hidden || !editor.isEditable || !(control.enabled?.(editor) ?? true)
@@ -186,7 +192,7 @@ export function createEditwell(element, {
     for (const [key, value] of Object.entries(overrides)) root.style.setProperty('--ew-' + key, value)
   }
   setTheme(theme)
-  refresh()
+  setToolbar(toolbar)
   return {
     getHTML: () => editor.getHTML(),
     getJSON: () => editor.getJSON(),
@@ -198,6 +204,8 @@ export function createEditwell(element, {
       return result
     },
     setSourceMode,
+    setToolbar,
+    getToolbarControls: () => Array.from(commands, ([id, control]) => ({ id, label: labels[id] ?? control.label })),
     setEditable: value => { if (!value) setSourceMode(false, false); editor.setEditable(value, false); refresh() },
     setTheme,
     destroy: () => { editor.destroy(); root.remove() },

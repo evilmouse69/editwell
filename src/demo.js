@@ -1,3 +1,4 @@
+import { mountConfigurator } from './configurator.js'
 import { createEditwell, presets } from './editor.js'
 import { callout } from './plugins/callout.js'
 import { imageUploads, tables } from './plugins/tools.js'
@@ -14,10 +15,12 @@ const images = imageUploads({
   },
 })
 
+const fullToolbar = [...presets.article.slice(0, -3), 'callout', 'link', 'image', 'table', '|', 'addRow', 'addColumn', 'deleteRow', 'deleteColumn', 'mergeCells', 'splitCell', 'deleteTable', '|', 'undo', 'redo', '|', 'source']
+
 const article = createEditwell(document.querySelector('#article'), {
   label: 'Article',
   plugins: [callout, tables, images],
-  toolbar: [...presets.article.slice(0, -3), 'callout', 'link', 'image', 'table', '|', 'addRow', 'addColumn', 'deleteRow', 'deleteColumn', 'mergeCells', 'splitCell', 'deleteTable', '|', 'undo', 'redo', '|', 'source'],
+  toolbar: fullToolbar,
   tokens: { 'min-height': '255px' },
   content: '<h2>Writing a useful handover</h2><p>Start with the context. Explain what changed, what is still open and who can help.</p><aside data-editwell-callout><p>Keep the next action visible so the reader knows where to start.</p></aside><ul><li><p>Link to supporting material.</p></li><li><p>Record decisions with a date.</p></li></ul>',
 })
@@ -29,11 +32,18 @@ createEditwell(document.querySelector('#note'), {
   content: '<p>Try the compact toolbar here.</p>',
 })
 
+mountConfigurator(article, {
+  Full: fullToolbar,
+  Article: presets.article,
+  Basic: presets.basic,
+})
+
 const theme = document.querySelector('#theme')
 theme.onclick = () => {
   const dark = theme.getAttribute('aria-pressed') === 'false'
-  article.setTheme(dark ? 'dark' : 'light')
-  theme.setAttribute('aria-pressed', String(dark))
+  const select = document.querySelector('#config-theme')
+  select.value = dark ? 'dark' : 'light'
+  select.dispatchEvent(new Event('change'))
 }
 
 const status = document.querySelector('#status')

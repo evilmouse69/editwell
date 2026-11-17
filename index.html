@@ -16,6 +16,16 @@
   .actions button { border:1px solid #aabdad; border-radius:7px; background:#fff; color:#244c37; padding:7px 11px; font:inherit; font-size:.82rem; cursor:pointer }
   .actions button:disabled { opacity:.5; cursor:default }
   .status { min-height:1.4em; margin-top:8px; font-size:.83rem }
+  .configurator {margin-bottom: 12px; padding: 12px; border: 1px solid #cdd8cd; border-radius: 10px; background: #fff;}
+  .configurator summary {cursor: pointer; font-weight: 600;}
+  .config-settings {display: flex; flex-wrap: wrap; gap: 14px; margin-top: 14px;}
+  .configurator select {font: inherit;}
+  #config-tools {padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 5px;}
+  #config-tools li {display: flex; align-items: center; justify-content: space-between; gap: 5px; padding: 4px; border: 1px solid #d7dfd7; border-radius: 6px;}
+  #config-tools button {min-width: 30px;}
+  .config-output {display: block; margin-top: 10px;}
+  #config-output {display: block; width: 100%; margin-top: 4px;}
+  #config-status:empty {display: none;}
 </style>
 <main>
   <header><h1>Editwell</h1><p>Standalone rich text editor demo</p></header>
@@ -25,6 +35,18 @@
       <button id="save" type="button">Save draft</button>
       <button id="restore" type="button" disabled>Restore draft</button>
     </div></div>
+    <details class="configurator">
+      <summary>Customise toolbar and theme</summary>
+      <div class="config-settings">
+        <label>Preset <select id="config-preset"></select></label>
+        <label>Theme <select id="config-theme"><option value="light">Light</option><option value="dark">Dark</option></select></label>
+      </div>
+      <p>Tick the tools to show. Use the arrows to change their order.</p>
+      <ol id="config-tools"></ol>
+      <div class="actions"><button type="button" id="config-copy">Copy configuration</button></div>
+      <label class="config-output">Editor options <textarea id="config-output" rows="5" readonly></textarea></label>
+      <p role="status" id="config-status"></p>
+    </details>
     <div id="article"></div>
     <p class="status" id="status" role="status"></p>
   </section>
