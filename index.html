@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="en">
-<script type="module" crossorigin src="./assets/index-BYu2ZWMV.js"></script>
+<script type="module" crossorigin src="./assets/index-pXqHKSUG.js"></script>
 <link rel="stylesheet" crossorigin href="./assets/index-BywC_hv_.css">
 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Editwell</title>
-<style>*{box-sizing:border-box}body{color:#202522;background:#f2f5ef;margin:0;font:16px system-ui,sans-serif}main{width:min(900px,100% - 36px);margin:48px auto}header{border-bottom:1px solid #cdd8cd;margin-bottom:22px;padding-bottom:24px}h1{letter-spacing:-.06em;margin:0 0 12px;font:clamp(52px,10vw,88px)/1 Georgia,serif}header p,.status{color:#4d6355;margin:0}h2{margin:0;font-size:1rem}.row{flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;margin:26px 0 10px;display:flex}.actions{flex-wrap:wrap;gap:6px;display:flex}.actions button{color:#244c37;font:inherit;cursor:pointer;background:#fff;border:1px solid #aabdad;border-radius:7px;padding:7px 11px;font-size:.82rem}.actions button:disabled{opacity:.5;cursor:default}.status{min-height:1.4em;margin-top:8px;font-size:.83rem}</style>
+<style>*{box-sizing:border-box}body{color:#202522;background:#f2f5ef;margin:0;font:16px system-ui,sans-serif}main{width:min(900px,100% - 36px);margin:48px auto}header{border-bottom:1px solid #cdd8cd;margin-bottom:22px;padding-bottom:24px}h1{letter-spacing:-.06em;margin:0 0 12px;font:clamp(52px,10vw,88px)/1 Georgia,serif}header p,.status{color:#4d6355;margin:0}h2{margin:0;font-size:1rem}.row{flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;margin:26px 0 10px;display:flex}.actions{flex-wrap:wrap;gap:6px;display:flex}.actions button{color:#244c37;font:inherit;cursor:pointer;background:#fff;border:1px solid #aabdad;border-radius:7px;padding:7px 11px;font-size:.82rem}.actions button:disabled{opacity:.5;cursor:default}.status{min-height:1.4em;margin-top:8px;font-size:.83rem}.configurator{background:#fff;border:1px solid #cdd8cd;border-radius:10px;margin-bottom:12px;padding:12px}.configurator summary{cursor:pointer;font-weight:600}.config-settings{flex-wrap:wrap;gap:14px;margin-top:14px;display:flex}.configurator select{font:inherit}#config-tools{grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:5px;padding:0;list-style:none;display:grid}#config-tools li{border:1px solid #d7dfd7;border-radius:6px;justify-content:space-between;align-items:center;gap:5px;padding:4px;display:flex}#config-tools button{min-width:30px}.config-output{margin-top:10px;display:block}#config-output{width:100%;margin-top:4px;display:block}#config-status:empty{display:none}</style>
 <main>
   <header><h1>Editwell</h1><p>Standalone rich text editor demo</p></header>
   <section aria-labelledby="article-title">
@@ -15,6 +15,18 @@
       <button id="save" type="button">Save draft</button>
       <button id="restore" type="button" disabled>Restore draft</button>
     </div></div>
+    <details class="configurator">
+      <summary>Customise toolbar and theme</summary>
+      <div class="config-settings">
+        <label>Preset <select id="config-preset"></select></label>
+        <label>Theme <select id="config-theme"><option value="light">Light</option><option value="dark">Dark</option></select></label>
+      </div>
+      <p>Tick the tools to show. Use the arrows to change their order.</p>
+      <ol id="config-tools"></ol>
+      <div class="actions"><button type="button" id="config-copy">Copy configuration</button></div>
+      <label class="config-output">Editor options <textarea id="config-output" rows="5" readonly></textarea></label>
+      <p role="status" id="config-status"></p>
+    </details>
     <div id="article"></div>
     <p class="status" id="status" role="status"></p>
   </section>
