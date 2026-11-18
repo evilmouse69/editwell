@@ -295,3 +295,17 @@ test('article and compact demos render at narrow and high-zoom equivalent widths
   await page.setViewportSize({ width:900, height:1000 })
   await page.screenshot({ path:'../../work/editwell-demo.png' })
 })
+
+test('onChange can export applied source edits without re-entering source commit', async () => {
+  await page.evaluate(() => {
+    window.saved = null
+    window.a = Editwell.createEditwell(document.querySelector('#a'), {
+      content:'<p>Original</p>', toolbar:['source'],
+      onChange() { window.saved = a.exportContent() },
+    })
+  })
+  await page.getByRole('button',{name:'HTML source',exact:true}).click()
+  await page.getByRole('textbox',{name:'Document HTML source'}).fill('<p>Reentrant save</p>')
+  await page.getByRole('button',{name:'HTML source',exact:true}).click()
+  assert.match(await page.evaluate(() => saved.html), /Reentrant save/)
+})

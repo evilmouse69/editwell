@@ -37,7 +37,7 @@ export function writingControls(editor, root, { t, searchArticles, notify }) {
       }),
     },
     internalLink: {
-      enabled: () => Boolean(searchArticles),
+      enabled: () => Boolean(searchArticles) && typeof editor.commands.setLink === 'function',
       run() {
         if (!searchArticles) return
         const bookmark = editor.state.selection.getBookmark()

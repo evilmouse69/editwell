@@ -306,8 +306,10 @@ export function createEditwell(element, {
     if (enabled === !source.hidden || (enabled && !editor.isEditable)) return
     if (!enabled && source.value !== editor.getHTML() && editor.isEditable) {
       const imported = importHTML(source.value, editor.schema)
-      editor.commands.setContent(imported.doc.toJSON())
       recordReport(imported.issues, source.value)
+      source.hidden = true
+      surface.hidden = false
+      editor.commands.setContent(imported.doc.toJSON())
     }
     source.hidden = !enabled
     surface.hidden = enabled
