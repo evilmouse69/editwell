@@ -10,8 +10,8 @@ Use Node.js 24 LTS or Node.js 22.12+.
 ```sh
 npm ci
 npx playwright install chromium
-npm test
 npm run build
+npm test
 npm run dev
 ```
 
