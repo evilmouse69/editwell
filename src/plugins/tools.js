@@ -1,3 +1,4 @@
+import { setupUploads, selectImage, uploadPlaceholder } from './uploads.js'
 import { TableKit } from '@tiptap/extension-table'
 import { mergeAttributes } from '@tiptap/core'
 import { editDialog } from '../edit-dialog.js'
@@ -24,17 +25,7 @@ export const tables = {
   },
 }
 
-const rasterTypes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/avif']
-const inlineRaster = /^data:image\/(png|jpeg|gif|webp|avif);base64,[a-z0-9+/]+=*$/i
-
-function imageSource(value) {
-  if (typeof value !== 'string' || !value.trim()) return
-  if (inlineRaster.test(value)) return value
-  const url = new URL(value, document.baseURI)
-  if (['http:', 'https:'].includes(url.protocol)) return value.trim()
-}
-
-const CaptionedImage = Image.extend({
+export const CaptionedImage = Image.extend({
   addAttributes() {
     const inherited = this.parent()
     const readImage = element => element.matches('figure') ? element.querySelector('img') : element
@@ -43,6 +34,29 @@ const CaptionedImage = Image.extend({
     ]))
     return {
       ...attributes,
+      width: {
+        default: null,
+        parseHTML: element => {
+          const image = readImage(element)
+          return image.getAttribute('width') || (/^\d+px$/.test(image.style.width) ? parseInt(image.style.width) : null)
+        },
+      },
+      height: {
+        default: null,
+        parseHTML: element => {
+          const image = readImage(element)
+          return image.getAttribute('height') || (/^\d+px$/.test(image.style.height) ? parseInt(image.style.height) : null)
+        },
+      },
+      alignment: {
+        default: 'left',
+        parseHTML: element => {
+          const image = readImage(element)
+          const alignment = element.getAttribute('data-alignment') || image.getAttribute('data-alignment') || image.getAttribute('align') || element.style.textAlign
+          return ['left', 'center', 'right'].includes(alignment) ? alignment : 'left'
+        },
+        renderHTML: attrs => ({ 'data-alignment': attrs.alignment }),
+      },
       caption: {
         default: '',
         rendered: false,
@@ -52,35 +66,43 @@ const CaptionedImage = Image.extend({
   },
   parseHTML() {
     return [
-      { tag: 'figure[data-editwell-image]', getAttrs: element => element.querySelector('img[src]') ? {} : false },
+      { tag: 'figure', getAttrs: element => element.querySelector('img[src]') ? {} : false },
       ...this.parent(),
     ]
   },
   renderHTML({ node, HTMLAttributes }) {
     const image = ['img', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes)]
     return node.attrs.caption
-      ? ['figure', { 'data-editwell-image': '' }, image, ['figcaption', node.attrs.caption]]
+      ? ['figure', { 'data-editwell-image': '', 'data-alignment': node.attrs.alignment }, image, ['figcaption', node.attrs.caption]]
       : image
   },
 })
 
-export function imageUploads({ upload, onError = error => window.alert(error.message) }) {
+export function imageUploads({ upload, onError, maxFileSize = 10 * 1024 * 1024 }) {
   return {
     name: 'imageUploads',
-    extensions: [CaptionedImage.configure({ allowBase64: true })],
+    extensions: [CaptionedImage.configure({ allowBase64: true }), uploadPlaceholder],
+    setup: (editor, root, services) => setupUploads(editor, root, services, { upload, onError, maxFileSize }),
     controls: {
       imageDetails: {
         label: 'Image details',
         enabled: editor => editor.isActive('image'),
-        run(editor, root) {
-          const { alt, caption } = editor.getAttributes('image')
+        run(editor, root, { t }) {
+          const { alt, caption, width, height, alignment } = editor.getAttributes('image')
           editDialog(editor, root, {
-            title: 'Image details',
+            title: t('imageDetails'),
+            t,
             fields: {
-              alt: { label: 'Alt text (leave blank for decorative images)', value: alt ?? '' },
-              caption: { label: 'Caption', value: caption ?? '' },
+              alt: { label: t('alt'), value: alt ?? '' },
+              caption: { label: t('caption'), value: caption ?? '' },
+              width: { label: t('width'), value: width ?? '' },
+              height: { label: t('height'), value: height ?? '' },
+              alignment: { label: t('imageAlignment'), value: alignment, choices: ['left', 'center', 'right'].map(value => ({ value, label: t(value) })) },
             },
-            submit: values => editor.commands.updateAttributes('image', values) ? undefined : 'Select an image to edit.',
+            submit(values) {
+              if (['width', 'height'].some(key => values[key] && !/^[1-9]\d{0,4}$/.test(values[key]))) return t('invalidSize')
+              return editor.commands.updateAttributes('image', { ...values, width: Number(values.width) || null, height: Number(values.height) || null }) ? undefined : t('invalidImage')
+            },
           })
         },
       },
@@ -88,26 +110,7 @@ export function imageUploads({ upload, onError = error => window.alert(error.mes
         label: 'Upload image',
         icon: '▧',
         enabled: editor => editor.can().setImage({ src: 'placeholder.png' }),
-        run(editor) {
-          const input = document.createElement('input')
-          input.type = 'file'
-          input.accept = rasterTypes.join(',')
-          input.addEventListener('change', async () => {
-            const file = input.files?.[0]
-            if (!file) return
-            try {
-              if (!rasterTypes.includes(file.type)) throw new Error('Choose a PNG, JPEG, GIF, WebP or AVIF image.')
-              const src = imageSource(await upload(file))
-              if (!src) throw new Error('The upload did not return a supported image URL.')
-              if (!editor.isDestroyed && editor.isEditable) {
-                editor.chain().focus().setImage({ src, alt: '' }).run()
-              }
-            } catch (error) {
-              onError(error)
-            }
-          }, { once: true })
-          input.click()
-        },
+        run: selectImage,
       },
     },
   }

@@ -1,5 +1,6 @@
-export function editDialog(editor, root, { title, fields, submit, remove }) {
-  if (root.querySelector('dialog[open]')) return
+export function editDialog(editor, root, { title, fields, submit, remove, t = key => ({ cancel:'Cancel', apply:'Apply', removeLink:'Remove link' })[key] }) {
+  if (root.querySelector('dialog[open]') || editor.isDestroyed || !editor.isEditable) return
+  const previous = document.activeElement
   const dialog = document.createElement('dialog')
   dialog.className = 'ew-dialog'
   dialog.setAttribute('aria-label', title)
@@ -8,9 +9,10 @@ export function editDialog(editor, root, { title, fields, submit, remove }) {
   heading.textContent = title
   form.append(heading)
   const inputs = {}
-  for (const [name, { label, value = '' }] of Object.entries(fields)) {
+  for (const [name, { label, value = '', choices, multiline }] of Object.entries(fields)) {
     const wrapper = document.createElement('label')
-    const input = document.createElement('input')
+    const input = document.createElement(choices ? 'select' : multiline ? 'textarea' : 'input')
+    if (choices) for (const choice of choices) input.add(new Option(choice.label, choice.value))
     input.value = value
     inputs[name] = input
     wrapper.append(label, input)
@@ -26,12 +28,13 @@ export function editDialog(editor, root, { title, fields, submit, remove }) {
     if (action) element.onclick = action
     actions.append(element)
   }
-  if (remove) button('Remove link', () => { remove(); dialog.close() })
-  button('Cancel', () => dialog.close())
-  button('Apply')
+  if (remove) button(t('removeLink'), () => { if (editor.isEditable) remove(); dialog.close() })
+  button(t('cancel'), () => dialog.close())
+  button(t('apply'))
   form.append(error, actions)
   form.onsubmit = event => {
     event.preventDefault()
+    if (!editor.isEditable || editor.isDestroyed) return
     const values = Object.fromEntries(Object.entries(inputs).map(([key, input]) => [key, input.value.trim()]))
     error.textContent = submit(values) ?? ''
     if (!error.textContent) dialog.close()
@@ -40,7 +43,11 @@ export function editDialog(editor, root, { title, fields, submit, remove }) {
   root.append(dialog)
   dialog.addEventListener('close', () => {
     dialog.remove()
-    if (!editor.isDestroyed) editor.commands.focus()
+    if (!editor.isDestroyed) {
+      if (previous?.isConnected) previous.focus()
+      else editor.commands.focus()
+    }
   })
   dialog.showModal()
+  return dialog
 }
